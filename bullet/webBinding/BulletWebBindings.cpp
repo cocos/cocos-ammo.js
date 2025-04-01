@@ -66,6 +66,8 @@ EMSCRIPTEN_BINDINGS(bullet) {
                 .function("syncPhysicsToGraphics", &cc::ccMotionState::syncPhysicsToGraphics)
                 .allow_subclass<ccMotionStateWrapper>("MotionStateWrapper", constructor<>());
 
+        function("getVersion", btGetVersion);
+
         //_malloc
         function("_malloc", &_malloc);
         function("_free", &_free);
@@ -151,6 +153,7 @@ EMSCRIPTEN_BINDINGS(bullet) {
         function("CollisionShape_setMargin", &CollisionShape_setMargin, allow_raw_pointers());
         function("CollisionShape_setMaterial", &CollisionShape_setMaterial, allow_raw_pointers());
         function("CollisionShape_setUserPointer", &CollisionShape_setUserPointer, allow_raw_pointers());
+        function("CollisionShape_getLocalBoundingSphere", &CollisionShape_getLocalBoundingSphere, allow_raw_pointers());
 
         function("EmptyShape_static", &EmptyShape_static, allow_raw_pointers());
         function("ConvexInternalShape_getImplicitShapeDimensions", &ConvexInternalShape_getImplicitShapeDimensions, allow_raw_pointers());
