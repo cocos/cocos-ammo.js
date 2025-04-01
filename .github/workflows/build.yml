@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+  pull_request:
+  release:
+    types: [published]
+
+jobs:
+  build-emscripten:
+    name: emscripten
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Checkout EMSDK
+        uses: actions/checkout@v4
+        with:
+          repository: emscripten-core/emsdk
+          path: emsdk
+
+      - name: Setup EMSDK
+        run: |
+          sudo apt-get install python3
+          sudo apt-get install git
+          cd emsdk
+          ./emsdk install 3.1.41
+          ./emsdk activate 3.1.41
+          source ./emsdk_env.sh
+          # Verify
+          emcc -v
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Build
+        run: |
+          # Setup EMSDK env
+          source emsdk/emsdk_env.sh
+          export EMSCRIPTEN="$EMSDK/upstream/emscripten"
+          echo "Start release build"
+          rm -rf bullet-release-embind
+          cd bullet
+          ./build-emscripten.sh
+          echo "Build finished"
+
+      - name: Show Result
+        run: |
+          ls -l bullet-release-embind/release/
+          rm -rf bullet-release-embind/release/*.a
+
+      - name: Upload Artifact (wasm/asmjs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: emscripten
+          path: bullet-release-embind/release
+
+      - name: Pack dist files
+        if: github.event_name == 'release'
+        uses: thedoctor0/zip-release@main
+        with:
+          type: 'zip'
+          directory: 'bullet-release-embind/release'
+          path: '.'
+          filename: 'bullet-${{ github.event.release.tag_name }}-emscripten.zip'
+
+      - name: Upload to Release
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@04733e069f2d7f7f0b4aebc4fbdbce8613b03ccd
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: bullet-release-embind/release/bullet-${{ github.event.release.tag_name }}-emscripten.zip
+          asset_name: bullet-${{ github.event.release.tag_name }}-emscripten.zip
+          tag: ${{ github.ref }}
